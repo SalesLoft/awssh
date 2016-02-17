@@ -1,0 +1,20 @@
+#!/bin/bash
+SERVER=$1
+
+# Try the public interface
+IP=$(_with_awssh_credentials _awssh_public_ip $SERVER)
+JUMP=""
+
+# If we don't see one, fallback to private and use bastion host
+if [ -z "$IP" ]; then
+  JUMP="ssh -t omni1"
+  IP=$(_with_awssh_credentials _awssh_private_ip $SERVER)
+fi
+
+# If we still don't have one, we can't hit that server
+if [ -z "$IP" ]; then
+  echo "Cannot find accessible instance '$SERVER'" >&2
+  exit -1
+fi
+
+$JUMP ssh -tt benolive@$IP
