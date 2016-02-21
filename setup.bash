@@ -5,7 +5,7 @@ PATH=$PATH:"$(cd "`dirname ${BASH_SOURCE[0]}`" && echo $PWD)/bin"
 
 # Setup tab completion for instances
 _awssh_completion() {
-  local INSTANCES="${_OPSWORKS_INSTANCES:=$(_with_awssh_credentials _awssh_list_instances)}"
+  local INSTANCES="${_OPSWORKS_INSTANCES:=$(awssh --list)}"
   local prefix="${COMP_WORDS[COMP_CWORD]}"
   COMPREPLY=( $(compgen -W "$INSTANCES" -- $prefix) )
   return 0

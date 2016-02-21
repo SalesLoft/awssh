@@ -1,20 +1,76 @@
-#!/bin/bash
-SERVER=$1
+#! /usr/bin/env ruby
+require "aws-sdk"
+require "delegate"
 
-# Try the public interface
-IP=$(_with_awssh_credentials _awssh_public_ip $SERVER)
-JUMP=""
+module Environment
+  def self.required(var)
+    value = ENV.fetch(var.to_s) { abort "Missing require environment variable #{var}" }
+    const_set(var, value)
+  end
 
-# If we don't see one, fallback to private and use bastion host
-if [ -z "$IP" ]; then
-  JUMP="ssh -t omni1"
-  IP=$(_with_awssh_credentials _awssh_private_ip $SERVER)
-fi
+  required :AWSSH_USERNAME
+  required :AWSSH_BASTION_HOST
+  required :AWSSH_ACCESS_KEY_ID
+  AWSSH_SECRET_ACCESS_KEY = ENV["AWSSH_SECRET_ACCESS_KEY"] || `security find-generic-password -wa aws_jump_user_secret_key`.strip
+end
 
-# If we still don't have one, we can't hit that server
-if [ -z "$IP" ]; then
-  echo "Cannot find accessible instance '$SERVER'" >&2
-  exit -1
-fi
+class Instance < SimpleDelegator
+  def self.wrap(list)
+    list.map(&method(:new))
+  end
 
-$JUMP ssh -tt benolive@$IP
+  def full_name
+    [tag("opsworks:stack"), tag("opsworks:instance")].join("/")
+  end
+
+  def tag(name)
+    tags.find { |t| t.key == name }.value
+  end
+end
+
+class Shell
+  def ssh_command(instance)
+    if instance.public_ip_address
+      ssh(instance.public_ip_address)
+    elsif instance.private_ip_address
+      ssh(Environment::AWSSH_BASTION_HOST, ssh(instance.private_ip_address))
+    else
+      abort "No public or private IP available for #{instance.full_name}"
+    end
+  end
+
+  def ssh(host, command=nil)
+    "ssh -tt #{Environment::AWSSH_USERNAME}@#{host} #{command}"
+  end
+end
+
+class Client
+  def instance(name)
+    stack, name = name.split("/")
+    instances("tag:opsworks:stack" => stack, "tag:opsworks:instance" => name).first
+  end
+
+  def instances(filters)
+    filters = filters.map { |k, v| {name: k, values: Array(v)} }
+    Instance.wrap(client.describe_instances(filters: filters).reservations.flat_map(&:instances))
+  end
+
+  def client
+    @client ||= Aws::EC2::Client.new(
+      region: "us-east-1",
+      access_key_id: Environment::AWSSH_ACCESS_KEY_ID,
+      secret_access_key: Environment::AWSSH_SECRET_ACCESS_KEY
+    )
+  end
+end
+
+abort "Usage: awssh stack/instance" unless ARGV.length == 1
+arg = ARGV.first
+
+if arg == "--list"
+  puts Client.new.instances("tag-key" => "opsworks:instance").map(&:full_name).sort
+else
+  instance = Client.new.instance(arg)
+  abort "Cannot find #{arg}" unless instance
+  exec Shell.new.ssh_command(instance)
+end

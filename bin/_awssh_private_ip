@@ -1,6 +1,0 @@
-#! /usr/bin/env ruby
-require "aws-sdk"
-
-client = Aws::EC2::Client.new(region: "us-east-1")
-opsworks_instances = client.describe_instances(filters: [{name: "tag:opsworks:instance", values: [ARGV[0]]}]).reservations.flat_map(&:instances)
-puts opsworks_instances.map(&:private_ip_address)
