@@ -5,6 +5,7 @@ Connect to Ops-works hosts by name.
 ## Installation
 
 * Checkout the repository
+* run `bundle install`
 * Add `source /path/to/awssh/setup.bash` to your `~/.profile`
 
 ## Setup
