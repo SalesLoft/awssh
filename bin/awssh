@@ -1,4 +1,5 @@
 #! /usr/bin/env ruby
+gem "aws-sdk", "~> 2"
 require "aws-sdk"
 require "delegate"
 
