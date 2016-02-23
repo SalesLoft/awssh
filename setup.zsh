@@ -11,7 +11,7 @@ _awssh_completion() {
   return 0
 }
 
-autoload bashcompinit
+autoload -U bashcompinit
 bashcompinit
 
 complete -F _awssh_completion awssh
