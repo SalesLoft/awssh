@@ -41,7 +41,7 @@ class Shell
   end
 
   def ssh(host, command=nil)
-    "ssh -tt #{Environment::AWSSH_USERNAME}@#{host} #{command}"
+    "ssh -tt -A #{Environment::AWSSH_USERNAME}@#{host} #{command}"
   end
 end
 
