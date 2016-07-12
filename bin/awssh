@@ -30,11 +30,11 @@ class Instance < SimpleDelegator
 end
 
 class Shell
-  def ssh_command(instance)
+  def ssh_command(instance, command=nil)
     if instance.public_ip_address
-      ssh(instance.public_ip_address)
+      ssh(instance.public_ip_address, command)
     elsif instance.private_ip_address
-      ssh(Environment::AWSSH_BASTION_HOST, ssh(instance.private_ip_address))
+      ssh(Environment::AWSSH_BASTION_HOST, ssh(instance.private_ip_address, command))
     else
       abort "No public or private IP available for #{instance.full_name}"
     end
@@ -65,13 +65,13 @@ class Client
   end
 end
 
-abort "Usage: awssh stack/instance" unless ARGV.length == 1
-arg = ARGV.first
+abort "Usage: awssh stack/instance" if ARGV.empty?
+host, *args = ARGV
 
-if arg == "--list"
+if host == "--list"
   puts Client.new.instances("tag-key" => "opsworks:instance").map(&:full_name).sort
 else
-  instance = Client.new.instance(arg)
-  abort "Cannot find #{arg}" unless instance
-  exec Shell.new.ssh_command(instance)
+  instance = Client.new.instance(host)
+  abort "Cannot find #{host}" unless instance
+  exec Shell.new.ssh_command(instance, args.join(" "))
 end
