@@ -69,7 +69,10 @@ abort "Usage: awssh stack/instance" if ARGV.empty?
 host, *args = ARGV
 
 if host == "--list"
-  puts Client.new.instances("tag-key" => "opsworks:instance").map(&:full_name).sort
+  puts Client.new.instances(
+    "tag-key" => "opsworks:instance",
+    "instance-state-name" => "running"
+  ).map(&:full_name).sort
 else
   instance = Client.new.instance(host)
   abort "Cannot find #{host}" unless instance
