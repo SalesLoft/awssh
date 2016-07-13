@@ -2,6 +2,7 @@
 gem "aws-sdk", "~> 2"
 require "aws-sdk"
 require "delegate"
+require "shellwords"
 
 module Environment
   def self.required(var)
@@ -76,5 +77,5 @@ if host == "--list"
 else
   instance = Client.new.instance(host)
   abort "Cannot find #{host}" unless instance
-  exec Shell.new.ssh_command(instance, args.join(" "))
+  exec Shell.new.ssh_command(instance, args.shelljoin)
 end
