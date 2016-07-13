@@ -42,7 +42,7 @@ class Shell
   end
 
   def ssh(host, command=nil)
-    "ssh -tt -A #{Environment::AWSSH_USERNAME}@#{host} #{command}"
+    "ssh -tt -A #{Environment::AWSSH_USERNAME}@#{host} #{command.shellescape}"
   end
 end
 
@@ -77,5 +77,5 @@ if host == "--list"
 else
   instance = Client.new.instance(host)
   abort "Cannot find #{host}" unless instance
-  exec Shell.new.ssh_command(instance, args.shelljoin)
+  exec Shell.new.ssh_command(instance, args.join(" "))
 end
